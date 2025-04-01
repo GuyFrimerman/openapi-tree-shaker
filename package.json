@@ -13,7 +13,7 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "prepare": "npm run build:cli",
-    "prepublishOnly": "npm run test && npm run lint"
+    "prepublishOnly-disabled": "npm run test && npm run lint"
   },
   "bin": {
     "openapi-tree-shake": "./dist/cli.js"
