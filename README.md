@@ -1,6 +1,6 @@
 # OpenAPI Tree Shaker
 
-[![CI](./actions/workflows/ci.yml/badge.svg)](./actions/workflows/ci.yml)
+[![CI](./.github/workflows/ci.yml/badge.svg)](./.github/workflows/ci.yml)
 [![npm version](https://badge.fury.io/js/openapi-tree-shaker.svg)](https://badge.fury.io/js/openapi-tree-shaker)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
