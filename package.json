@@ -1,7 +1,7 @@
 {
   "name": "openapi-tree-shaker",
   "private": false,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -57,16 +57,16 @@
     "tree-shake",
     "optimization"
   ],
-  "author": "StackBlitz",
+  "author": "Guy Frimerman",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/stackblitz/openapi-tree-shaker"
+    "url": "https://github.com/GuyFrimerman/openapi-tree-shaker"
   },
   "bugs": {
-    "url": "https://github.com/stackblitz/openapi-tree-shaker/issues"
+    "url": "https://github.com/GuyFrimerman/openapi-tree-shaker/issues"
   },
-  "homepage": "https://github.com/stackblitz/openapi-tree-shaker#readme",
+  "homepage": "https://github.com/GuyFrimerman/openapi-tree-shaker#readme",
   "engines": {
     "node": ">=18"
   }
