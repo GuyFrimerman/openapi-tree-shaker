@@ -1,7 +1,7 @@
 # OpenAPI Tree Shaker
 
-[![Tests Passing](../../.github/workflows/ci.yml/badge.svg)](../../.github/workflows/ci.yml)
-[![Lint](../../.github/workflows/lint.yml/badge.svg)](../../.github/workflows/lint.yml)
+[![Tests Passing](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+[![Lint](../../actions/workflows/lint.yml/badge.svg)](../../actions/workflows/lint.yml)
 [![npm version](https://badge.fury.io/js/openapi-tree-shaker.svg)](https://badge.fury.io/js/openapi-tree-shaker)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
