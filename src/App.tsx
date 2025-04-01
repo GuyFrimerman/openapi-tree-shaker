@@ -8,7 +8,7 @@ import type { Endpoint } from './types/openapi';
 
 function App() {
   const [currentStep, setCurrentStep] = useState<number>(0);
-  const [spec, setSpec] = useState<any>(null);
+  const [spec, setSpec] = useState<unknown>(null);
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [outputFormat, setOutputFormat] = useState<'json' | 'yaml'>('json');
 
