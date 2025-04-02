@@ -1,9 +1,10 @@
 import React, { useState, ChangeEvent, DragEvent } from 'react';
 import { Upload, Globe } from 'lucide-react';
 import { load as yamlLoad } from 'js-yaml';
+import type { OpenAPISpec } from '../types/openapi';
 
 interface ImportPageProps {
-  onSpecLoaded: (spec: any) => void;
+  onSpecLoaded: (spec: OpenAPISpec) => void;
 }
 
 export function ImportPage({ onSpecLoaded }: ImportPageProps) {
@@ -13,21 +14,21 @@ export function ImportPage({ onSpecLoaded }: ImportPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const parseInput = (content: string, filename?: string): any => {
+  const parseInput = (content: string): OpenAPISpec => {
     try {
       // Try JSON first
       return JSON.parse(content);
-    } catch (e) {
+    } catch {
       try {
         // If JSON fails, try YAML
-        return yamlLoad(content);
-      } catch (e2) {
+        return yamlLoad(content) as OpenAPISpec;
+      } catch {
         throw new Error('Failed to parse file as JSON or YAML');
       }
     }
   };
 
-  const validateOpenAPISpec = (json: any): void => {
+  const validateOpenAPISpec = (json: OpenAPISpec): void => {
     if (!json || typeof json !== 'object') {
       throw new Error('Invalid specification format');
     }
@@ -45,11 +46,11 @@ export function ImportPage({ onSpecLoaded }: ImportPageProps) {
       setError(null);
 
       const text = await file.text();
-      const json = parseInput(text, file.name);
+      const json = parseInput(text);
       validateOpenAPISpec(json);
       onSpecLoaded(json);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to parse OpenAPI specification');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to parse OpenAPI specification');
     } finally {
       setLoading(false);
     }
@@ -90,8 +91,8 @@ export function ImportPage({ onSpecLoaded }: ImportPageProps) {
       const json = parseInput(text);
       validateOpenAPISpec(json);
       onSpecLoaded(json);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch or parse OpenAPI specification');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to fetch or parse OpenAPI specification');
     } finally {
       setLoading(false);
     }
@@ -104,8 +105,8 @@ export function ImportPage({ onSpecLoaded }: ImportPageProps) {
       const json = parseInput(manualInput);
       validateOpenAPISpec(json);
       onSpecLoaded(json);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to parse OpenAPI specification');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to parse OpenAPI specification');
     } finally {
       setLoading(false);
     }
@@ -154,7 +155,7 @@ export function ImportPage({ onSpecLoaded }: ImportPageProps) {
           const json = parseInput(text);
           validateOpenAPISpec(json);
           onSpecLoaded(json);
-        } catch (err) {
+        } catch (error) {
           setError('Dropped content is neither a valid URL nor a valid OpenAPI specification');
         }
       }

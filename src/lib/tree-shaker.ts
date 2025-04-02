@@ -1,4 +1,5 @@
-import type { OpenAPISpec, TreeShakeResult } from '../types/openapi';
+import type { OpenAPISpec, TreeShakeResult, PathItemObject, ParsedReference } from '../types/openapi';
+import type { OpenAPIV2, OpenAPIV3 } from 'openapi-types';
 import { findAllReferences } from '../utils/references';
 
 export function treeShakeOpenAPI(
@@ -18,10 +19,12 @@ export function treeShakeOpenAPI(
   };
   
   // Filter paths based on patterns
-  const filteredPaths: Record<string, any> = {};
-  for (const [path, methods] of Object.entries(spec.paths)) {
+  const filteredPaths: Record<string, PathItemObject> = {};
+  const paths = spec.paths || {};
+  
+  for (const [path, methods] of Object.entries(paths)) {
     if (regexPatterns.some(pattern => pattern.test(path))) {
-      filteredPaths[path] = methods;
+      filteredPaths[path] = methods as PathItemObject;
     } else {
       summary.removedPaths.push(path);
     }
@@ -31,17 +34,17 @@ export function treeShakeOpenAPI(
   const usedRefs = findAllReferences(spec, filteredPaths);
   
   // Create new spec with only used components
-  const newSpec: OpenAPISpec = {
-    ...spec,
-    paths: filteredPaths,
-  };
+  const newSpec = { ...spec, paths: filteredPaths } as OpenAPISpec;
 
   // Handle OpenAPI 2.0
-  if (spec.definitions) {
-    newSpec.definitions = {};
-    for (const [name, schema] of Object.entries(spec.definitions)) {
-      if (Array.from(usedRefs).some(ref => ref.type === 'schemas' && ref.name === name)) {
-        newSpec.definitions[name] = schema;
+  const spec2 = spec as OpenAPIV2.Document;
+  if ('swagger' in spec && spec2.definitions) {
+    const newSpec2 = newSpec as OpenAPIV2.Document;
+    newSpec2.definitions = {};
+    
+    for (const [name, schema] of Object.entries(spec2.definitions)) {
+      if (Array.from(usedRefs).some((ref: ParsedReference) => ref.type === 'schemas' && ref.name === name)) {
+        newSpec2.definitions[name] = schema;
       } else {
         summary.removedSchemas.push(name);
       }
@@ -49,47 +52,48 @@ export function treeShakeOpenAPI(
   }
 
   // Handle OpenAPI 3.0
-  if (spec.components) {
-    newSpec.components = {};
+  const spec3 = spec as OpenAPIV3.Document;
+  if ('openapi' in spec && spec3.components) {
+    const newSpec3 = newSpec as OpenAPIV3.Document;
+    newSpec3.components = {} as OpenAPIV3.ComponentsObject;
 
     // Helper function to process each component type
-    const processComponents = (type: 'schemas' | 'parameters' | 'responses' | 'requestBodies') => {
-      if (spec.components?.[type]) {
-        if (!newSpec.components) {
-          newSpec.components = {};
-        }
-        newSpec.components[type] = {};
-        for (const [name, component] of Object.entries(spec.components[type])) {
-          if (Array.from(usedRefs).some(ref => ref.type === type && ref.name === name)) {
-            if (!newSpec.components[type]) {
-              newSpec.components[type] = {};
-            }
-            newSpec.components[type][name] = component;
+    const processComponents = (type: keyof OpenAPIV3.ComponentsObject) => {
+      const components = spec3.components?.[type];
+      if (components) {
+        newSpec3.components![type] = {};
+        
+        for (const [name, component] of Object.entries(components)) {
+          if (Array.from(usedRefs).some((ref: ParsedReference) => ref.type === type && ref.name === name)) {
+            newSpec3.components![type]![name] = component;
           } else {
-            summary[`removed${type.charAt(0).toUpperCase() + type.slice(1)}` as keyof typeof summary].push(name);
+            const summaryKey = `removed${type.charAt(0).toUpperCase() + type.slice(1)}` as keyof typeof summary;
+            if (Array.isArray(summary[summaryKey])) {
+              (summary[summaryKey] as string[]).push(name);
+            }
           }
         }
       }
     };
 
     // Only process component types that exist in the original spec
-    if (spec.components.schemas) processComponents('schemas');
-    if (spec.components.parameters) processComponents('parameters');
-    if (spec.components.responses) processComponents('responses');
-    if (spec.components.requestBodies) processComponents('requestBodies');
+    if (spec3.components.schemas) processComponents('schemas');
+    if (spec3.components.parameters) processComponents('parameters');
+    if (spec3.components.responses) processComponents('responses');
+    if (spec3.components.requestBodies) processComponents('requestBodies');
 
     // Remove empty component sections
-    if (newSpec.components) {
-      Object.keys(newSpec.components).forEach(key => {
-        if (Object.keys(newSpec.components![key] || {}).length === 0) {
-          delete newSpec.components![key];
-        }
-      });
-
-      // Remove components object if it's empty
-      if (Object.keys(newSpec.components).length === 0) {
-        delete newSpec.components;
+    const componentKeys = Object.keys(newSpec3.components) as Array<keyof OpenAPIV3.ComponentsObject>;
+    for (const key of componentKeys) {
+      const component = newSpec3.components[key] as Record<string, unknown> | undefined;
+      if (component && Object.keys(component).length === 0) {
+        delete newSpec3.components[key] as unknown;
       }
+    }
+
+    // Remove components object if it's empty
+    if (Object.keys(newSpec3.components).length === 0) {
+      delete newSpec3.components;
     }
   }
   

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Download, ChevronDown, ChevronRight, ArrowLeft, Copy, Check } from 'lucide-react';
 import { dump as yamlDump } from 'js-yaml';
-import type { Summary } from '../types/openapi';
+import type { OpenAPISpec, TreeShakeResult } from '../types/openapi';
 
 interface PreviewPageProps {
-  spec: any;
-  treeShakenResult: { spec: any; summary: Summary } | null;
+  spec: OpenAPISpec | null;
+  treeShakenResult: TreeShakeResult | null;
   outputFormat: 'json' | 'yaml';
   setOutputFormat: (format: 'json' | 'yaml') => void;
   onBack: () => void;
@@ -40,7 +40,7 @@ export function PreviewPage({
       await navigator.clipboard.writeText(content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch (error) {
       setError('Failed to copy to clipboard');
     }
   };

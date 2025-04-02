@@ -4,11 +4,11 @@ import { SelectionPage } from './pages/SelectionPage';
 import { PreviewPage } from './pages/PreviewPage';
 import { RotateCcw } from 'lucide-react';
 import { treeShakeOpenAPI } from './lib/tree-shaker';
-import type { Endpoint } from './types/openapi';
+import type { Endpoint, OpenAPISpec, TreeShakeResult } from './types/openapi';
 
 function App() {
   const [currentStep, setCurrentStep] = useState<number>(0);
-  const [spec, setSpec] = useState<unknown>(null);
+  const [spec, setSpec] = useState<OpenAPISpec | null>(null);
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [outputFormat, setOutputFormat] = useState<'json' | 'yaml'>('json');
 
@@ -19,7 +19,7 @@ function App() {
     setOutputFormat('json');
   };
 
-  const getTreeShakenSpec = () => {
+  const getTreeShakenSpec = (): TreeShakeResult | null => {
     if (!spec) return null;
 
     const patterns = endpoints
@@ -34,10 +34,10 @@ function App() {
       title: 'Import',
       component: (
         <ImportPage
-          onSpecLoaded={(newSpec: any) => {
+          onSpecLoaded={(newSpec: OpenAPISpec) => {
             setSpec(newSpec);
             const newEndpoints: Endpoint[] = [];
-            Object.entries(newSpec.paths).forEach(([path, methods]: [string, any]) => {
+            Object.entries(newSpec.paths).forEach(([path, methods]: [string, PathItemObject]) => {
               Object.keys(methods).forEach(method => {
                 newEndpoints.push({ path, method, selected: true });
               });
