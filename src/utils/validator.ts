@@ -33,7 +33,7 @@ export function validateOpenAPISpec(spec: unknown): OpenAPISpec {
 
   if (validationResult.errors.length > 0) {
     const errorMessages = validationResult.errors
-      .map(error => `${error.dataPath || ''}: ${error.message}`)
+      .map(error => error.message)
       .join('\n');
     throw new Error(`Invalid OpenAPI specification:\n${errorMessages}`);
   }
