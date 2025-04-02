@@ -1,6 +1,7 @@
-import type { Reference, OpenAPISpec } from '../types/openapi';
+import type { OpenAPISpec, ParsedReference } from '../types/openapi';
+import type { OpenAPIV2, OpenAPIV3 } from 'openapi-types';
 
-export function parseRef(ref: string): Reference | null {
+export function parseRef(ref: string): ParsedReference | null {
   // Handle both OpenAPI 2.0 and 3.0 references
   const v2Match = ref.match(/^#\/definitions\/(.+)$/);
   if (v2Match) {
@@ -13,18 +14,17 @@ export function parseRef(ref: string): Reference | null {
     if (type !== 'schemas' && type !== 'parameters' && type !== 'responses' && type !== 'requestBodies') {
       return null;
     }
-    return { type, name };
+    return { type: type as ParsedReference['type'], name };
   }
 
   return null;
 }
 
-export function findReferencesInObject(obj: any, refs: Set<Reference>, visited = new Set<any>()): void {
+export function findReferencesInObject(obj: unknown, refs: Set<ParsedReference>, visited = new Set<unknown>()): void {
   if (!obj || typeof obj !== 'object') return;
   
-  const objKey = obj instanceof Object ? obj : JSON.stringify(obj);
-  if (visited.has(objKey)) return;
-  visited.add(objKey);
+  if (visited.has(obj)) return;
+  visited.add(obj);
 
   if (Array.isArray(obj)) {
     obj.forEach(item => findReferencesInObject(item, refs, visited));
@@ -35,7 +35,9 @@ export function findReferencesInObject(obj: any, refs: Set<Reference>, visited =
     if (key === '$ref' && typeof value === 'string') {
       const ref = parseRef(value);
       if (ref) {
-        if (!Array.from(refs).some(r => r.type === ref.type && r.name === ref.name)) {
+        // Use a string representation to ensure uniqueness
+        const refKey = `${ref.type}:${ref.name}`;
+        if (!Array.from(refs).some(r => `${r.type}:${r.name}` === refKey)) {
           refs.add(ref);
         }
       }
@@ -45,11 +47,11 @@ export function findReferencesInObject(obj: any, refs: Set<Reference>, visited =
   }
 }
 
-export function findAllReferences(spec: OpenAPISpec, paths: Record<string, any>): Set<Reference> {
-  const refs = new Set<Reference>();
-  const visited = new Set<any>();
+export function findAllReferences(spec: OpenAPISpec, paths: Record<string, unknown>): Set<ParsedReference> {
+  const refs = new Set<ParsedReference>();
+  const visited = new Set<unknown>();
   const processedRefs = new Set<string>();
-  const queue: Reference[] = [];
+  const queue: ParsedReference[] = [];
 
   // Find initial references in paths
   findReferencesInObject(paths, refs, visited);
@@ -69,11 +71,21 @@ export function findAllReferences(spec: OpenAPISpec, paths: Record<string, any>)
     if (processedRefs.has(refKey)) continue;
     processedRefs.add(refKey);
 
-    let component;
-    if (ref.type === 'schemas' && spec.definitions) {
-      component = spec.definitions[ref.name];
-    } else if (spec.components?.[ref.type]) {
-      component = spec.components[ref.type]?.[ref.name];
+    let component: unknown;
+    if (ref.type === 'schemas') {
+      // Handle both OpenAPI 2.0 and 3.0
+      const spec2 = spec as OpenAPIV2.Document;
+      const spec3 = spec as OpenAPIV3.Document;
+      
+      if (spec2.definitions) {
+        component = spec2.definitions[ref.name];
+      } else if (spec3.components?.schemas) {
+        component = spec3.components.schemas[ref.name];
+      }
+    } else if ('components' in spec) {
+      // OpenAPI 3.0 only
+      const spec3 = spec as OpenAPIV3.Document;
+      component = spec3.components?.[ref.type]?.[ref.name];
     }
 
     if (component) {

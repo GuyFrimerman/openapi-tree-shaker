@@ -1,42 +1,71 @@
 import { describe, it, expect } from 'vitest';
 import { treeShakeOpenAPI } from '../tree-shaker';
+import { validateOpenAPISpec } from '../../utils/validator';
 import type { OpenAPISpec } from '../../types/openapi';
 
 describe('treeShakeOpenAPI', () => {
-  it('should keep all paths when no patterns are provided', () => {
+  it('should keep all paths when no patterns are provided and output valid OpenAPI', () => {
     const spec: OpenAPISpec = {
+      openapi: '3.0.0',
+      info: {
+        title: 'Test API',
+        version: '1.0.0'
+      },
       paths: {
-        '/users': { get: {} },
-        '/posts': { get: {} }
+        '/users': { get: { responses: { '200': { description: 'OK' } } } },
+        '/posts': { get: { responses: { '200': { description: 'OK' } } } }
       }
     };
 
     const result = treeShakeOpenAPI(spec);
     expect(Object.keys(result.spec.paths)).toEqual(['/users', '/posts']);
     expect(result.summary.removedPaths).toEqual([]);
+    
+    // Validate output schema
+    expect(() => validateOpenAPISpec(result.spec)).not.toThrow();
   });
 
-  it('should filter paths based on patterns', () => {
+  it('should filter paths based on patterns and output valid OpenAPI', () => {
     const spec: OpenAPISpec = {
+      openapi: '3.0.0',
+      info: {
+        title: 'Test API',
+        version: '1.0.0'
+      },
       paths: {
-        '/users': { get: {} },
-        '/posts': { get: {} }
+        '/users': { get: { responses: { '200': { description: 'OK' } } } },
+        '/posts': { get: { responses: { '200': { description: 'OK' } } } }
       }
     };
 
     const result = treeShakeOpenAPI(spec, ['^/users']);
     expect(Object.keys(result.spec.paths)).toEqual(['/users']);
     expect(result.summary.removedPaths).toEqual(['/posts']);
+    
+    // Validate output schema
+    expect(() => validateOpenAPISpec(result.spec)).not.toThrow();
   });
 
-  it('should handle circular references in schemas', () => {
+  it('should handle circular references in schemas and output valid OpenAPI', () => {
     const spec: OpenAPISpec = {
+      openapi: '3.0.0',
+      info: {
+        title: 'Test API',
+        version: '1.0.0'
+      },
       paths: {
         '/users': {
           get: {
             responses: {
               '200': {
-                $ref: '#/components/schemas/User'
+                description: 'OK',
+                content: {
+                  'application/json': {
+                    schema: {
+                      $ref: '#/components/schemas/User'
+                    }
+                  }
+                }
               }
             }
           }
@@ -75,16 +104,31 @@ describe('treeShakeOpenAPI', () => {
     // Verify the circular reference is preserved
     const userSchema = result.spec.components!.schemas!.User;
     expect(userSchema.properties.friends.items.$ref).toBe('#/components/schemas/User');
+    
+    // Validate output schema
+    expect(() => validateOpenAPISpec(result.spec)).not.toThrow();
   });
 
-  it('should handle deeply nested circular references', () => {
+  it('should handle deeply nested circular references and output valid OpenAPI', () => {
     const spec: OpenAPISpec = {
+      openapi: '3.0.0',
+      info: {
+        title: 'Test API',
+        version: '1.0.0'
+      },
       paths: {
         '/categories': {
           get: {
             responses: {
               '200': {
-                $ref: '#/components/schemas/Category'
+                description: 'OK',
+                content: {
+                  'application/json': {
+                    schema: {
+                      $ref: '#/components/schemas/Category'
+                    }
+                  }
+                }
               }
             }
           }
@@ -148,15 +192,24 @@ describe('treeShakeOpenAPI', () => {
       .toBe('#/components/schemas/Product');
     expect(productSchema.properties.category.$ref)
       .toBe('#/components/schemas/Category');
+    
+    // Validate output schema
+    expect(() => validateOpenAPISpec(result.spec)).not.toThrow();
   });
 
-  it('should handle OpenAPI 2.0 circular references', () => {
+  it('should handle OpenAPI 2.0 circular references and output valid OpenAPI', () => {
     const spec: OpenAPISpec = {
+      swagger: '2.0',
+      info: {
+        title: 'Test API',
+        version: '1.0.0'
+      },
       paths: {
         '/nodes': {
           get: {
             responses: {
               '200': {
+                description: 'OK',
                 schema: {
                   $ref: '#/definitions/Node'
                 }
@@ -200,5 +253,8 @@ describe('treeShakeOpenAPI', () => {
     const nodeSchema = result.spec.definitions!.Node;
     expect(nodeSchema.properties.parent.$ref).toBe('#/definitions/Node');
     expect(nodeSchema.properties.children.items.$ref).toBe('#/definitions/Node');
+    
+    // Validate output schema
+    expect(() => validateOpenAPISpec(result.spec)).not.toThrow();
   });
 });
